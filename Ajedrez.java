@@ -5,21 +5,255 @@ import javax.swing.*;
 public class Ajedrez extends JFrame{
 	private static final long serialVersionUID = 5;
 	
-  private int turn, rbx, rby, rnx, rny;
-  private boolean activo, enroque;
+  private int turn;
+  private int rbx, rby, rnx, rny; //Tracking de la posicion del Rey
+  private boolean activo, enroque;  // Pieza seleccionada y si se esta ejecutando un enrroque
   
-  private JPanel panel, info;
-  private JTextField turno;
-  private JButton nuevo, guarda, carga, salir, otro;
+  private JPanel panel, info; // Panel = Tablero   Info = Opciones
+  private JTextField turno; // Caja de texto que contiene el color de la pieza activa
+  private JButton nuevo, guarda, carga, salir, otro;  // Botones Otro = Locura mía
   private Casilla casillas[][], tmp1, tmp2;
+  /**
+    casillas es la representación interna del tablero, tmp1 y tmp2 son temporales para
+    alojar las posiciones de las piezas mientras se realiza un movimiento
+  */
     
     
     
 	public Ajedrez(){
     super("Ajedrez");
     
-    info = new JPanel();
+    casillas = new Casilla[8][8];
+    makePanel();
     
+    enroque = false;	    
+	}
+	
+	/* makePanel()
+	  Coloca la piezas pertinentes en su sitio adecuado para el inico de una nueva partida
+	  Se debe llamar solo al inicio del programa, o al reiniciar una partida (nueva)
+	*/
+	
+	protected void makePanel(){
+		for (int i = 0; i<8; i++)
+		  for (int j = 0; j<8; j++)
+		      casillas[i][j] = new Casilla(i,j);
+		  
+		  for (int i = 0; i<8; i++){
+		    casillas[1][i].setPieza(new Peon(1,i,true));
+		    casillas[6][i].setPieza(new Peon(6,i,false));
+		  }
+		  
+		  casillas[0][0].setPieza(new Torre(0,0,true));
+		  casillas[0][7].setPieza(new Torre(0,7,true));
+		  casillas[7][0].setPieza(new Torre(7,0,false));
+		  casillas[7][7].setPieza(new Torre(7,7,false));
+		  
+		  casillas[0][1].setPieza(new Caballo(0,1,true));
+		  casillas[0][6].setPieza(new Caballo(0,6,true));
+		  casillas[7][1].setPieza(new Caballo(7,1,false));
+		  casillas[7][6].setPieza(new Caballo(7,6,false));
+		  
+		  casillas[0][2].setPieza(new Alfil(0,2,true));
+		  casillas[0][5].setPieza(new Alfil(0,5,true));
+		  casillas[7][2].setPieza(new Alfil(7,2,false));
+		  casillas[7][5].setPieza(new Alfil(7,5,false));
+		  
+		  
+		  setRey(0,3, true);
+		  casillas[0][3].setPieza(new Rey(0,3,true));
+		  casillas[0][4].setPieza(new Reina(0,4,true));
+		  
+		  setRey(7,3, false);
+		  casillas[7][3].setPieza(new Rey(7,3,false));
+		  casillas[7][4].setPieza(new Reina(7,4,false));
+	}
+	
+	
+	/* addListeners()
+	  Añade los listeners necesarios para la correcta ejecución del programa, se modulariza
+	  para soportar posteriormente la opcion de cargar una partida desde archivo...
+	*/
+	
+	protected void addListeners(){
+		nuevo.addMouseListener(new MouseAdapter(){
+		    @Override
+		    public void mouseClicked(MouseEvent e){
+		      dispose();
+		      new Ajedrez().showGUI();
+		    }
+		  });
+		  
+		  salir.addMouseListener(new MouseAdapter(){
+		    @Override
+		    public void mouseClicked(MouseEvent e){
+		      System.exit(0);
+		    }
+		  });
+		  
+		  for (int i = 0, j; i<8; i++)
+		    for (j = 0; j<8; j++){
+		    	casillas[i][j].addMouseListener(new MouseAdapter(){
+
+		        @Override
+		        public void mouseClicked(MouseEvent E){
+		          Pieza tmp = null;
+		          int x;
+		                  
+		          if (E.getButton() == MouseEvent.BUTTON3 && activo){
+		            tmp1.setBackground(null);
+		            activo = false;
+		            return;
+		          }
+		          
+		          if (!E.getComponent().isEnabled())
+		            return;
+		          
+		          if (((Casilla)E.getComponent()).getPieza() == null && 
+		                  !activo)
+		            return;
+		          
+		          
+		          if (activo){                     
+		            tmp2 = (Casilla)(E.getComponent());
+		            
+		            activo = false;
+		            tmp1.setBackground(null);
+		            
+		            if (tmp1.getPieza() instanceof Rey)
+		                enroque = enroq();
+		            
+		            if (enroque){
+		              //TODO > Mover la torre correspondiente
+		              //     > Checar jaques y devolver las piezas
+		              
+		              tmp1.getPieza().move();
+		              
+		              tmp2.setPieza(new Rey(tmp2.getx(), tmp2.gety(),
+		                      tmp1.getPieza().isBlanca()));
+		              
+		              tmp2.getPieza().setMov(tmp1.getPieza().getMov());
+		              
+		              
+		              setRey(tmp2.getx(), tmp2.gety(),
+		                      tmp2.getPieza().isBlanca());
+		              
+		              tmp1.setPieza(null);
+		              
+		              if (tmp2.gety() > tmp1.gety()){
+		                
+		                if(tmp2.getPieza().isBlanca()){                                   
+		                	casillas[0][4].setPieza(new Torre(0,4,true));
+		                  casillas[0][7].setPieza(null);                                        
+		                }
+		                
+		                else{                                    
+		                	casillas[7][4].setPieza(new Torre(7,4,false));
+		                  casillas[7][7].setPieza(null);
+		                }                                    
+		              }
+		              
+		              else{
+		                
+		                if(tmp2.getPieza().isBlanca()){                                   
+		                	casillas[0][2].setPieza(new Torre(0,2,true));
+		                  casillas[0][0].setPieza(null);                                        
+		                }
+		                
+		                else{                                    
+		                	casillas[7][2].setPieza(new Torre(7,2,false));
+		                  casillas[7][0].setPieza(null);
+		                }
+		                
+		              }
+		              
+		              cTurno();
+		              
+		              activo = false;
+		              enroque = false;
+		              
+		              return;
+		          } // Fin Enroque
+		            
+		          else if(tmp1.getPieza().move(tmp2.getx(),tmp2.gety(),casillas)){
+		              
+		              if (tmp2.getPieza() != null)
+		                tmp = tmp2.getPieza().getPieza();
+		              
+		              tmp2.setPieza(tmp1.getPieza().getPieza());
+		              
+		              tmp2.getPieza().setX(tmp2.getx());
+		              tmp2.getPieza().setY(tmp2.gety());
+		              
+		              if (tmp2.getPieza() instanceof Rey){
+		                setRey(tmp2.getx(), tmp2.gety(), tmp2.
+		                        getPieza().isBlanca());
+		              }
+		              
+		              tmp2.getPieza().move();
+		              
+		              tmp1.setPieza(null);
+		              
+		              x = jaque();
+		              
+		              if (x != 0 && x != turn){ //Esta en jaque, de regreso!                    
+		                tmp2.getPieza().deMove();
+		                
+		                tmp1.setPieza(tmp2.getPieza().getPieza());
+		                tmp1.getPieza().setMov(tmp2.getPieza().getMov());
+		                tmp1.getPieza().setX(tmp1.getx());
+		                tmp1.getPieza().setY(tmp1.gety());
+
+		                if (tmp1.getPieza() instanceof Rey){
+		                    setRey(tmp1.getx(), tmp1.gety(), tmp1.
+		                            getPieza().isBlanca());
+		                }
+
+		                if (tmp != null)
+		                    tmp2.setPieza(tmp.getPieza());
+		                        
+		                else
+		                    tmp2.setPieza(null);
+		                
+		            
+		                return;
+		              }
+		                                              
+		              
+		          }
+		            
+		          else{ // Pieza invalida
+		              //alerta(2);
+		              return;
+		          }
+		            
+		          cTurno();
+		              
+		        } //Fin Movimiento (if (activo))
+		          
+		          else if (E.getButton() != MouseEvent.BUTTON3){
+		            tmp1 = (Casilla)(E.getComponent());
+		            
+		            if ((turn == 2 && tmp1.getPieza().isBlanca()) ||
+		                    (turn == 1 && !tmp1.getPieza().isBlanca())){
+		              alerta(1);
+		              return;
+		            }
+		              
+		            tmp1.setBackground(Color.GREEN);
+		            activo = true;
+		          }
+		        }
+		      });
+		    }
+		  
+	}
+	
+	
+	protected void showGUI(){
+    setLayout(new FlowLayout());
+    
+    info = new JPanel();
     turno = new JTextField(5);
     nuevo = new JButton("Nuevo");
     otro = new JButton();
@@ -27,69 +261,17 @@ public class Ajedrez extends JFrame{
     guarda = new JButton("Guardar");
     carga = new JButton("Cargar");
     
-    nuevo.addMouseListener(new MouseAdapter(){
-      @Override
-      public void mouseClicked(MouseEvent e){
-        dispose();
-        new Ajedrez().showGUI();
-      }
-    });
-    
-    salir.addMouseListener(new MouseAdapter(){
-      @Override
-      public void mouseClicked(MouseEvent e){
-        System.exit(0);
-      }
-    });
-    
-    casillas = new Casilla[8][8];
-    
-    for (int i = 0; i<8; i++)
-      for (int j = 0; j<8; j++)
-        casillas[i][j] = new Casilla(i,j);
-    
-    for (int i = 0; i<8; i++){
-      casillas[1][i].setPieza(new Peon(1,i,true));
-      casillas[6][i].setPieza(new Peon(6,i,false));
-    }
-    
-    casillas[0][0].setPieza(new Torre(0,0,true));
-    casillas[0][7].setPieza(new Torre(0,7,true));
-    casillas[7][0].setPieza(new Torre(7,0,false));
-    casillas[7][7].setPieza(new Torre(7,7,false));
-    
-    casillas[0][1].setPieza(new Caballo(0,1,true));
-    casillas[0][6].setPieza(new Caballo(0,6,true));
-    casillas[7][1].setPieza(new Caballo(7,1,false));
-    casillas[7][6].setPieza(new Caballo(7,6,false));
-    
-    casillas[0][2].setPieza(new Alfil(0,2,true));
-    casillas[0][5].setPieza(new Alfil(0,5,true));
-    casillas[7][2].setPieza(new Alfil(7,2,false));
-    casillas[7][5].setPieza(new Alfil(7,5,false));
-    
-    
-    setRey(0,3, true);
-    casillas[0][3].setPieza(new Rey(0,3,true));
-    casillas[0][4].setPieza(new Reina(0,4,true));
-    
-    setRey(7,3, false);
-    casillas[7][3].setPieza(new Rey(7,3,false));
-    casillas[7][4].setPieza(new Reina(7,4,false));
-    
-    panel = new JPanel();
-    enroque = false;	    
-	}
-	
-	protected void showGUI(){
-    setLayout(new FlowLayout());
-    
     turno.setEditable(false);
-    turno.setText("Blancas");
-    turn = 1;
+    
+    if (turn == 1)
+	    turno.setText("Blancas");
+	   else 
+	   	turno.setText("Negras");
     
     info.setLayout(new GridLayout(6,1));
     
+    
+    //otro es para un icono extra, puede ser removido sin problemas
     otro.setIcon(new ImageIcon("lerolero.gif"));
     otro.setEnabled(false);
     otro.setDisabledIcon(new ImageIcon("lerolero.gif"));
@@ -101,168 +283,19 @@ public class Ajedrez extends JFrame{
     info.add(guarda);
     info.add(otro);
     
+    panel = new JPanel();
+    
     panel.setLayout(new GridLayout(8,8));
     
-    for (int i = 0, j; i<8; i++)
-      for (j = 0; j<8; j++){
-      	casillas[i][j].addMouseListener(new MouseAdapter(){
+    for (int i = 0; i<8; i++)
+    	for (int j = 0; j<8; j++)
+    		panel.add(casillas[i][j]);
 
-          @Override
-          public void mouseClicked(MouseEvent E){
-            Pieza tmp = null;
-            int x;
-                    
-            if (E.getButton() == MouseEvent.BUTTON3 && activo){
-              tmp1.setBackground(null);
-              activo = false;
-              return;
-            }
-            
-            if (!E.getComponent().isEnabled())
-              return;
-            
-            if (((Casilla)E.getComponent()).getPieza() == null && 
-                    !activo)
-              return;
-            
-            
-            if (activo){                     
-              tmp2 = (Casilla)(E.getComponent());
-              
-              activo = false;
-              tmp1.setBackground(null);
-              
-              if (tmp1.getPieza() instanceof Rey)
-                  enroque = enroq();
-              
-              if (enroque){
-                //TODO > Mover la torre correspondiente
-                //     > Checar jaques y devolver las piezas
-                
-                tmp1.getPieza().move();
-                
-                tmp2.setPieza(new Rey(tmp2.getx(), tmp2.gety(),
-                        tmp1.getPieza().isBlanca()));
-                
-                tmp2.getPieza().setMov(tmp1.getPieza().getMov());
-                
-                
-                setRey(tmp2.getx(), tmp2.gety(),
-                        tmp2.getPieza().isBlanca());
-                
-                tmp1.setPieza(null);
-                
-                if (tmp2.gety() > tmp1.gety()){
-                  
-                  if(tmp2.getPieza().isBlanca()){                                   
-                  	casillas[0][4].setPieza(new Torre(0,4,true));
-                    casillas[0][7].setPieza(null);                                        
-                  }
-                  
-                  else{                                    
-                  	casillas[7][4].setPieza(new Torre(7,4,false));
-                    casillas[7][7].setPieza(null);
-                  }                                    
-                }
-                
-                else{
-                  
-                  if(tmp2.getPieza().isBlanca()){                                   
-                  	casillas[0][2].setPieza(new Torre(0,2,true));
-                    casillas[0][0].setPieza(null);                                        
-                  }
-                  
-                  else{                                    
-                  	casillas[7][2].setPieza(new Torre(7,2,false));
-                    casillas[7][0].setPieza(null);
-                  }
-                  
-                }
-                
-                cTurno();
-                
-                activo = false;
-                enroque = false;
-                
-                return;
-            } // Fin Enroque
-              
-            else if(tmp1.getPieza().move(tmp2.getx(),tmp2.gety(),casillas)){
-                
-                if (tmp2.getPieza() != null)
-                  tmp = tmp2.getPieza().getPieza();
-                
-                tmp2.setPieza(tmp1.getPieza().getPieza());
-                
-                tmp2.getPieza().setX(tmp2.getx());
-                tmp2.getPieza().setY(tmp2.gety());
-                
-                if (tmp2.getPieza() instanceof Rey){
-                  setRey(tmp2.getx(), tmp2.gety(), tmp2.
-                          getPieza().isBlanca());
-                }
-                
-                tmp2.getPieza().move();
-                
-                tmp1.setPieza(null);
-                
-                x = jaque();
-                
-                if (x != 0 && x != turn){ //Esta en jaque, de regreso!                    
-                  tmp2.getPieza().deMove();
-                  
-                  tmp1.setPieza(tmp2.getPieza().getPieza());
-                  tmp1.getPieza().setMov(tmp2.getPieza().getMov());
-                  tmp1.getPieza().setX(tmp1.getx());
-                  tmp1.getPieza().setY(tmp1.gety());
-
-                  if (tmp1.getPieza() instanceof Rey){
-                      setRey(tmp1.getx(), tmp1.gety(), tmp1.
-                              getPieza().isBlanca());
-                  }
-
-                  if (tmp != null)
-                      tmp2.setPieza(tmp.getPieza());
-                          
-                  else
-                      tmp2.setPieza(null);
-                  
-              
-                  return;
-                }
-                                                
-                
-            }
-              
-            else{ // Pieza invalida
-                //alerta(2);
-                return;
-            }
-              
-            cTurno();
-                
-          } //Fin Movimiento (if (activo))
-            
-            else if (E.getButton() != MouseEvent.BUTTON3){
-              tmp1 = (Casilla)(E.getComponent());
-              
-              if ((turn == 2 && tmp1.getPieza().isBlanca()) ||
-                      (turn == 1 && !tmp1.getPieza().isBlanca())){
-                alerta(1);
-                return;
-              }
-                
-              tmp1.setBackground(Color.GREEN);
-              activo = true;
-            }
-          }
-        });
-    
-      	panel.add(casillas[i][j]);
-      }
     
     add(panel);
     add(info);
+    
+    addListeners();
     
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setResizable(false);
