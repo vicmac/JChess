@@ -14,6 +14,7 @@ public class Ajedrez extends JFrame{
   private JTextField turno; // Caja de texto que contiene el color de la pieza activa
   private JButton nuevo, guarda, carga, salir, otro;  // Botones Otro = Locura mia
   private Casilla casillas[][], tmp1, tmp2;
+  
   /**
     casillas es la representacion interna del tablero, tmp1 y tmp2 son temporales para
     alojar las posiciones de las piezas mientras se realiza un movimiento
@@ -27,7 +28,7 @@ public class Ajedrez extends JFrame{
     casillas = new Casilla[8][8];
     makePanel();
     
-    enroque = false;
+    enroque = activo = false;
     turn = 1;
 	}
 	
@@ -319,6 +320,8 @@ public class Ajedrez extends JFrame{
     
     panel.setLayout(new GridLayout(8,8));
     
+    addListeners();
+    
     for (int i = 0; i<8; i++)
     	for (int j = 0; j<8; j++)
     		panel.add(casillas[i][j]);
@@ -326,8 +329,6 @@ public class Ajedrez extends JFrame{
     
     add(panel);
     add(info);
-    
-    addListeners();
     
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setResizable(false);

@@ -10,10 +10,10 @@ public class Reina extends Pieza{
         if (Math.abs(nx-x) != Math.abs(ny-y)){
             if (!((Math.abs(nx-x)>0 && ny-y==0) || (Math.abs(ny-y)>0 && nx-x==0)))
                 return false;
-        }        
+            }
                 
-        else if (tablero[nx][ny].getPieza() != null && tablero[nx][ny].
-                getPieza().isBlanca() == tablero[x][y].getPieza().isBlanca())
+        if (tablero[nx][ny].getPieza() != null && tablero[nx][ny].
+                getPieza().isBlanca() == isBlanca())
             return false;
         
         if (Math.abs(nx-x) == Math.abs(ny-y))
@@ -34,7 +34,7 @@ public class Reina extends Pieza{
 
                 }
         
-        else if (Math.abs(nx-x) > 0 && ny-y == 0)
+         if (Math.abs(nx-x) > 0 && ny-y == 0)
             for (int i = x; i!=nx;){
                 if (tablero[i][ny].getPieza() != null && i != x)
                     return false;
@@ -55,6 +55,8 @@ public class Reina extends Pieza{
                 else
                     i--;
             }
+            
+       		  System.out.println("Que gay!!! D:");
 
             return true;
         }
