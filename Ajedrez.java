@@ -1,6 +1,7 @@
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import java.io.*;
 
 public class Ajedrez extends JFrame{
 	private static final long serialVersionUID = 5;
@@ -11,10 +12,10 @@ public class Ajedrez extends JFrame{
   
   private JPanel panel, info; // Panel = Tablero   Info = Opciones
   private JTextField turno; // Caja de texto que contiene el color de la pieza activa
-  private JButton nuevo, guarda, carga, salir, otro;  // Botones Otro = Locura mía
+  private JButton nuevo, guarda, carga, salir, otro;  // Botones Otro = Locura mia
   private Casilla casillas[][], tmp1, tmp2;
   /**
-    casillas es la representación interna del tablero, tmp1 y tmp2 son temporales para
+    casillas es la representacion interna del tablero, tmp1 y tmp2 son temporales para
     alojar las posiciones de las piezas mientras se realiza un movimiento
   */
     
@@ -26,7 +27,8 @@ public class Ajedrez extends JFrame{
     casillas = new Casilla[8][8];
     makePanel();
     
-    enroque = false;	    
+    enroque = false;
+    turn = 1;
 	}
 	
 	/* makePanel()
@@ -71,7 +73,7 @@ public class Ajedrez extends JFrame{
 	
 	
 	/* addListeners()
-	  Añade los listeners necesarios para la correcta ejecución del programa, se modulariza
+	  Agrega los listeners necesarios para la correcta ejecucion del programa, se modulariza
 	  para soportar posteriormente la opcion de cargar una partida desde archivo...
 	*/
 	
@@ -84,10 +86,40 @@ public class Ajedrez extends JFrame{
 		    }
 		  });
 		  
+		carga.addMouseListener(new MouseAdapter(){
+  		public void mouseClicked(MouseEvent e){
+  			Ajedrez nvo = new Ajedrez();
+  			if (nvo.cargaPartida()){
+  				dispose();
+  				nvo.showGUI();
+  			}
+  			
+  			else
+  				nvo = null;
+  			
+  		}
+  	});
+  	
+  	guarda.addMouseListener(new MouseAdapter(){
+  		public void mouseClicked(MouseEvent e){
+  			guardaPartida();
+  		}
+  	});
+  	
+		  
 		  salir.addMouseListener(new MouseAdapter(){
 		    @Override
 		    public void mouseClicked(MouseEvent e){
-		      System.exit(0);
+		      int res = JOptionPane.showConfirmDialog(null, "Desea guardar la partida actual???");
+					
+					if (res == JOptionPane.OK_OPTION)
+						guardaPartida();
+					
+					else if (res == JOptionPane.NO_OPTION)
+						JOptionPane.showMessageDialog(null, "Chido pues!!!\nEmpiezele de cero a la siguiente...");
+						
+					if (res != JOptionPane.CANCEL_OPTION)
+						System.exit(0);
 		    }
 		  });
 		  
@@ -302,170 +334,250 @@ public class Ajedrez extends JFrame{
     pack();
     setVisible(true);
 	}   
-    
-    protected void alerta(int opc){
-        String msg = "";
-        
-        switch (opc){
-            case 1:
-                msg = "No es tu pieza, selecciona otra";
-                break;
-                
-            case 2:
-                msg = "Movimiento invalido. \nVuelve a intentarlo";
-                break;
-                
-            case 3:
-                msg = "Casilla vacia, selecciona una pieza";
-                break;
-                
-            case 4:
-                msg = "Estas en jaque!!!\nMueve otra pieza";
-                
-        }
-        
-        JOptionPane.showMessageDialog(null, msg);
-    }
-    
-    protected final void setRey(int x, int y, boolean c){
-        
-        if (c){
-            rbx = x;
-            rby = y;
-        }
-                
-        else{
-            rnx = x;
-            rny = y;
-        }
-        
-    }
-    
-    protected int jaque(){
-        int st=0, i, j;
-        Pieza temp;
-        
-        for (i = 0; i<8; i++){
-            for (j = 0; j<8; j++){
-                if (casillas[i][j].getPieza() == null)
-                    continue;
-                
-                temp = casillas[i][j].getPieza();
-                
-                if (temp.isBlanca() && temp.move(rnx, rny, casillas))
-                    st = 1;
+	
+	protected boolean cargaPartida(){
+		int res;
+		boolean status = true;
+  	
+  	JFileChooser archivo = new JFileChooser("Cargar partida guardada");
+  	res = archivo.showOpenDialog(this);
+  	
+  	if (res == JFileChooser.APPROVE_OPTION){
+  		File file = archivo.getSelectedFile();
+  		
+			try{
+				ObjectInputStream entrada = new ObjectInputStream(new FileInputStream(file.getAbsolutePath()));
+				Object var;
+				
+				var = entrada.readObject();
+				
+				if (var instanceof Casilla[][])
+					casillas = (Casilla[][])var;
+				else{
+					JOptionPane.showMessageDialog(null, "Archivo no correspondiente al programa.\nIntenta de nuevo...\nCasillas");
+					status = false;
+				}
+				
+				var = entrada.readObject();	
+				if (var instanceof Integer)
+					turn = (Integer)var;
+				else{
+					JOptionPane.showMessageDialog(null, "Archivo no correspondiente al programa.\nIntenta de nuevo...\nturn");
+					status = false;
+				}
+				
+				entrada.close();
+			}
+			catch(Exception e){
+				JOptionPane.showMessageDialog(null, "No se pudo abrir el archivo");
+			}
+			
+			finally{
+				return res == JFileChooser.APPROVE_OPTION && status;
+			}
+			
+  	}
+  	
+  	return false;
+  }
 
-                
-                else if (!temp.isBlanca() && temp.move(rbx, rby, casillas))
-                    st = 2;
+	
+	private boolean guardaPartida(){
+  	int res;
+  	boolean retval = true;
+  	
+  	JFileChooser archivo = new JFileChooser("Guardar partida actual");
+  	res = archivo.showSaveDialog(this);
+  	
+  	if (res == JFileChooser.APPROVE_OPTION){
+  		File file = archivo.getSelectedFile();
+  		
+			try{
+				ObjectOutputStream salida = new ObjectOutputStream(new FileOutputStream(file.getAbsolutePath()));
+				salida.writeObject(casillas);
+				salida.writeObject(new Integer(turn));
+				salida.flush();
+				salida.close();
+			}
+			catch(Exception e){
+				JOptionPane.showMessageDialog(null, "No se pudo guardar el archivo");
+				e.printStackTrace();
+				retval = false;
+			}
+			
+			finally{
+				return res != JFileChooser.CANCEL_OPTION && retval;
+			}
+			
+  	}
+  	
+  	return false;
+  	
+  }
+    
+  protected void alerta(int opc){
+      String msg = "";
+      
+      switch (opc){
+          case 1:
+              msg = "No es tu pieza, selecciona otra";
+              break;
+              
+          case 2:
+              msg = "Movimiento invalido. \nVuelve a intentarlo";
+              break;
+              
+          case 3:
+              msg = "Casilla vacia, selecciona una pieza";
+              break;
+              
+          case 4:
+              msg = "Estas en jaque!!!\nMueve otra pieza";
+              
+      }
+      
+      JOptionPane.showMessageDialog(null, msg);
+  }
+  
+  protected final void setRey(int x, int y, boolean c){
+      
+      if (c){
+          rbx = x;
+          rby = y;
+      }
+              
+      else{
+          rnx = x;
+          rny = y;
+      }
+      
+  }
+  
+  protected int jaque(){
+      int st=0, i, j;
+      Pieza temp;
+      
+      for (i = 0; i<8; i++){
+          for (j = 0; j<8; j++){
+              if (casillas[i][j].getPieza() == null)
+                  continue;
+              
+              temp = casillas[i][j].getPieza();
+              
+              if (temp.isBlanca() && temp.move(rnx, rny, casillas))
+                  st = 1;
 
-            }
-            
-            if (st != turn && st != 0){
-                alerta(4);
-                break;
-            }
-            
-        }
-        
-       return st; 
+              
+              else if (!temp.isBlanca() && temp.move(rbx, rby, casillas))
+                  st = 2;
+
+          }
+          
+          if (st != turn && st != 0){
+              alerta(4);
+              break;
+          }
+          
+      }
+      
+     return st; 
+  }
+    
+  protected boolean enroq(){
+      
+    if (tmp2.getPieza() != null){
+        return false;
     }
     
-    protected boolean enroq(){
-        
-        if (tmp2.getPieza() != null){
+    else if (tmp1.getPieza().getMov() != 0){
+        return false;
+    }
+    
+    else if (tmp1.getx() - tmp2.getx() != 0){
+        return false;
+    }
+    
+    else if (Math.abs(tmp1.gety() - tmp2.gety()) != 2){
+        return false;
+    }
+    
+    for (int j = tmp1.gety(), i = tmp1.getx(), k = tmp2.gety();
+            !(casillas[i][j].getPieza() instanceof Torre); ){
+        if (casillas[i][j].getPieza() != null && j != tmp1.gety()){
             return false;
         }
         
-        else if (tmp1.getPieza().getMov() != 0){
+        if (k>tmp1.gety())
+            j++;
+        else
+            j--;
+        
+        if (j>7 || j<0){
             return false;
         }
-        
-        else if (tmp1.getx() - tmp2.getx() != 0){
-            return false;
-        }
-        
-        else if (Math.abs(tmp1.gety() - tmp2.gety()) != 2){
-            return false;
-        }
-        
-        for (int j = tmp1.gety(), i = tmp1.getx(), k = tmp2.gety();
-                !(casillas[i][j].getPieza() instanceof Torre); ){
-            if (casillas[i][j].getPieza() != null && j != tmp1.gety()){
-                return false;
-            }
-            
-            if (k>tmp1.gety())
-                j++;
-            else
-                j--;
-            
-            if (j>7 || j<0){
-                return false;
-            }
-        }
-        
-        return true;
     }
     
-    protected void cTurno(){
-        if (turn == 1){
-            turn = 2;
-            turno.setText("Negras");
-        }
-        
-        else{
-            turn = 1;
-            turno.setText("Blancas");
-        }
-        
-    }
-    
-    /*
-    public void Revive(){
-        final JFrame win = new JFrame("Revivir Pieza");
-        final JComboBox sel = new JComboBox();
-        JButton OK = new JButton("OK");
-        boolean v = true;
+    return true;
+  }
+  
+  protected void cTurno(){
+      if (turn == 1){
+          turn = 2;
+          turno.setText("Negras");
+      }
+      
+      else{
+          turn = 1;
+          turno.setText("Blancas");
+      }
+      
+  }
+  
+  /*
+  public void Revive(){
+      final JFrame win = new JFrame("Revivir Pieza");
+      final JComboBox sel = new JComboBox();
+      JButton OK = new JButton("OK");
+      boolean v = true;
 
-        sel.addItem("Gatito");
-        sel.addItem("Perrito");
+      sel.addItem("Gatito");
+      sel.addItem("Perrito");
 
-        OK.addMouseListener(new MouseAdapter(){
+      OK.addMouseListener(new MouseAdapter(){
 
-            @Override
-            public void mouseClicked(MouseEvent E){
-                String p = "";
+          @Override
+          public void mouseClicked(MouseEvent E){
+              String p = "";
 
-                p = (String) sel.getSelectedItem();
-                System.out.println(p);
+              p = (String) sel.getSelectedItem();
+              System.out.println(p);
 
-                if (p.equals("Gatito"))
-                    tmp = new Reina(tmp2.getx(), tmp2.gety(), 
-                            tmp2.getPieza().isBlanca());
-                else
-                    tmp = new Alfil(tmp2.getx(), tmp2.gety(), 
-                            tmp2.getPieza().isBlanca());
+              if (p.equals("Gatito"))
+                  tmp = new Reina(tmp2.getx(), tmp2.gety(), 
+                          tmp2.getPieza().isBlanca());
+              else
+                  tmp = new Alfil(tmp2.getx(), tmp2.gety(), 
+                          tmp2.getPieza().isBlanca());
 
-                win.dispose();
-            }
-            
-        });
+              win.dispose();
+          }
+          
+      });
 
-        win.setBounds(400, 300, 250, 80);
-        win.setLayout(new FlowLayout());
-        win.add(sel);
-        win.add(OK);
+      win.setBounds(400, 300, 250, 80);
+      win.setLayout(new FlowLayout());
+      win.add(sel);
+      win.add(OK);
 
-        win.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        win.setVisible(true);
+      win.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+      win.setVisible(true);
 
 
-    }*/
-    
-    public static void main(String args[]){
-        new Ajedrez().showGUI(); 
-        
-    }
+  }*/
+  
+  public static void main(String args[]){
+      new Ajedrez().showGUI(); 
+      
+  }
     
 }
