@@ -6,9 +6,8 @@ import java.io.*;
 public class Ajedrez extends JFrame{
 	private static final long serialVersionUID = 5;
 	
-  private int turn;
   private int rbx, rby, rnx, rny; //Tracking de la posicion del Rey
-  private boolean activo, enroque;  // Pieza seleccionada y si se esta ejecutando un enrroque
+  private boolean activo, enroque, turn;  // Pieza seleccionada y si se esta en enrroque
   
   private JPanel panel, info; // Panel = Tablero   Info = Opciones
   private JTextField turno; // Caja de texto que contiene el color de la pieza activa
@@ -128,159 +127,28 @@ public class Ajedrez extends JFrame{
 		    for (j = 0; j<8; j++){
 		    	casillas[i][j].addMouseListener(new MouseAdapter(){
 
+						/* TODO: Reestructurar toda la funcion del movimiento */
+						
 		        @Override
 		        public void mouseClicked(MouseEvent E){
-		          Pieza tmp = null;
-		          int x;
-		                  
-		          if (E.getButton() == MouseEvent.BUTTON3 && activo){
-		            tmp1.setBackground(null);
-		            activo = false;
-		            return;
+		        
+		          if (E.getButton() != MouseEvent.MOUSE_BUTTON_3 && !activo){
+		          	tmp1 = (Casilla) E.getComponent();
+		          	
+		          	if (tmp1.getPieza() != null && ){
+		          		activo = true;
+		          	}
+		          	
 		          }
 		          
-		          if (!E.getComponent().isEnabled())
-		            return;
 		          
-		          if (((Casilla)E.getComponent()).getPieza() == null && 
-		                  !activo)
-		            return;
-		          
-		          
-		          if (activo){                     
-		            tmp2 = (Casilla)(E.getComponent());
-		            
-		            activo = false;
-		            tmp1.setBackground(null);
-		            
-		            if (tmp1.getPieza() instanceof Rey)
-		                enroque = enroq();
-		            
-		            if (enroque){
-		              //TODO > Mover la torre correspondiente
-		              //     > Checar jaques y devolver las piezas
-		              
-		              tmp1.getPieza().move();
-		              
-		              tmp2.setPieza(new Rey(tmp2.getx(), tmp2.gety(),
-		                      tmp1.getPieza().isBlanca()));
-		              
-		              tmp2.getPieza().setMov(tmp1.getPieza().getMov());
-		              
-		              
-		              setRey(tmp2.getx(), tmp2.gety(),
-		                      tmp2.getPieza().isBlanca());
-		              
-		              tmp1.setPieza(null);
-		              
-		              if (tmp2.gety() > tmp1.gety()){
-		                
-		                if(tmp2.getPieza().isBlanca()){                                   
-		                	casillas[0][4].setPieza(new Torre(0,4,true));
-		                  casillas[0][7].setPieza(null);                                        
-		                }
-		                
-		                else{                                    
-		                	casillas[7][4].setPieza(new Torre(7,4,false));
-		                  casillas[7][7].setPieza(null);
-		                }                                    
-		              }
-		              
-		              else{
-		                
-		                if(tmp2.getPieza().isBlanca()){                                   
-		                	casillas[0][2].setPieza(new Torre(0,2,true));
-		                  casillas[0][0].setPieza(null);                                        
-		                }
-		                
-		                else{                                    
-		                	casillas[7][2].setPieza(new Torre(7,2,false));
-		                  casillas[7][0].setPieza(null);
-		                }
-		                
-		              }
-		              
-		              cTurno();
-		              
-		              activo = false;
-		              enroque = false;
-		              
-		              return;
-		          } // Fin Enroque
-		            
-		          else if(tmp1.getPieza().move(tmp2.getx(),tmp2.gety(),casillas)){
-		              
-		              if (tmp2.getPieza() != null)
-		                tmp = tmp2.getPieza().getPieza();
-		              
-		              tmp2.setPieza(tmp1.getPieza().getPieza());
-		              
-		              tmp2.getPieza().setX(tmp2.getx());
-		              tmp2.getPieza().setY(tmp2.gety());
-		              
-		              if (tmp2.getPieza() instanceof Rey){
-		                setRey(tmp2.getx(), tmp2.gety(), tmp2.
-		                        getPieza().isBlanca());
-		              }
-		              
-		              tmp2.getPieza().move();
-		              
-		              tmp1.setPieza(null);
-		              
-		              x = jaque();
-		              
-		              if (x != 0 && x != turn){ //Esta en jaque, de regreso!                    
-		                tmp2.getPieza().deMove();
-		                
-		                tmp1.setPieza(tmp2.getPieza().getPieza());
-		                tmp1.getPieza().setMov(tmp2.getPieza().getMov());
-		                tmp1.getPieza().setX(tmp1.getx());
-		                tmp1.getPieza().setY(tmp1.gety());
-
-		                if (tmp1.getPieza() instanceof Rey){
-		                    setRey(tmp1.getx(), tmp1.gety(), tmp1.
-		                            getPieza().isBlanca());
-		                }
-
-		                if (tmp != null)
-		                    tmp2.setPieza(tmp.getPieza());
-		                        
-		                else
-		                    tmp2.setPieza(null);
-		                
-		            
-		                return;
-		              }
-		                                              
-		              
-		          }
-		            
-		          else{ // Pieza invalida
-		              //alerta(2);
-		              return;
-		          }
-		            
-		          cTurno();
-		              
-		        } //Fin Movimiento (if (activo))
-		          
-		          else if (E.getButton() != MouseEvent.BUTTON3){
-		            tmp1 = (Casilla)(E.getComponent());
-		            
-		            if ((turn == 2 && tmp1.getPieza().isBlanca()) ||
-		                    (turn == 1 && !tmp1.getPieza().isBlanca())){
-		              alerta(1);
-		              return;
-		            }
-		              
-		            tmp1.setBackground(Color.GREEN);
-		            activo = true;
-		          }
-		        }
-		      });
-		    }
-		  
-	}
+		        } // Funcion Sobreescrita mouseClicked()
+		        
+		      }); //Clase Anonima (Listener)
+		      
+		    } // for de asignacion de Listener
+		    
+	}  //Metodo de clase
 	
 	
 	protected void showGUI(){
